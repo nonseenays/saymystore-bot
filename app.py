@@ -1,11 +1,8 @@
-from flask import Flask, request
-import os
 import telebot
 import random
 
 API_TOKEN = "8203843422:AAF24yiyOCRwJD7xDCifH6cGC42RIcrgnyE"
 bot = telebot.TeleBot(API_TOKEN)
-app = Flask(__name__)
 
 USDT_RATE = 90  # курс рублей к USDT
 
@@ -53,12 +50,9 @@ cities = [
 ]
 
 usdt_address = "TLXpo31Ws8PzAXHNBX3CYXuu5FEXoabptJ"
-
-# Временное хранилище заказов: chat_id -> dict с заказом
 user_orders = {}
 
 def chunk_list(lst, n):
-    """Разбить список lst на чанки по n элементов"""
     for i in range(0, len(lst), n):
         yield lst[i:i + n]
 
@@ -157,7 +151,6 @@ def confirm_order(message):
                      f"Товар: {order['product']}\n"
                      f"Способ получения: {order['delivery_method']}\n"
                      f"Мы свяжемся с вами в ближайшее время.")
-    # Можно очистить заказ после подтверждения
     user_orders.pop(chat_id)
 
 @bot.message_handler(func=lambda m: True)
