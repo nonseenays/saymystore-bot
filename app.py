@@ -3,11 +3,11 @@ import time
 
 TOKEN = '8203843422:AAF24yiyOCRwJD7xDCifH6cGC42RIcrgnyE'  # ← твой токен
 
-bot = telebot.TeleBot(TOKEN)
-
-# Удалим webhook, если он был установлен ранее, чтобы не мешал polling
 bot.remove_webhook()
-time.sleep(1)  # Короткая пауза, чтобы Telegram обработал удаление webhook
+print("Webhook удалён")
+exit()
+
+bot = telebot.TeleBot(TOKEN)
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
