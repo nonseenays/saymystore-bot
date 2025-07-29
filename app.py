@@ -1,10 +1,25 @@
 import telebot
-import random
+import time
 
-API_TOKEN = "8203843422:AAF24yiyOCRwJD7xDCifH6cGC42RIcrgnyE"
-bot = telebot.TeleBot(API_TOKEN)
+TOKEN = '8203843422:AAF24yiyOCRwJD7xDCifH6cGC42RIcrgnyE'  # ← твой токен
 
+bot = telebot.TeleBot(TOKEN)
+
+# Удалим webhook, если он был установлен ранее, чтобы не мешал polling
 bot.remove_webhook()
+time.sleep(1)  # Короткая пауза, чтобы Telegram обработал удаление webhook
+
+@bot.message_handler(commands=['start'])
+def send_welcome(message):
+    bot.send_message(message.chat.id, "Привет! Я бот, всё работает.")
+
+@bot.message_handler(func=lambda message: True)
+def echo_all(message):
+    bot.send_message(message.chat.id, message.text)
+
+if __name__ == '__main__':
+    print("Бот запущен через polling...")
+    bot.infinity_polling()
 
 USDT_RATE = 90  # курс рублей к USDT
 
