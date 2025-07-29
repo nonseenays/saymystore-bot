@@ -2,7 +2,7 @@ from flask import Flask, request
 import telebot
 import random
 
-API_TOKEN = "ВАШ_ТОКЕН_ЗДЕСЬ"
+API_TOKEN = "8203843422:AAF24yiyOCRwJD7xDCifH6cGC42RIcrgnyE"
 bot = telebot.TeleBot(API_TOKEN)
 app = Flask(__name__)
 
