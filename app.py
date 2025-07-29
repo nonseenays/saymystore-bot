@@ -4,6 +4,8 @@ import random
 API_TOKEN = "8203843422:AAF24yiyOCRwJD7xDCifH6cGC42RIcrgnyE"
 bot = telebot.TeleBot(API_TOKEN)
 
+bot.remove_webhook()
+
 USDT_RATE = 90  # курс рублей к USDT
 
 prices_rub = {
