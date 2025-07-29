@@ -3,9 +3,7 @@ import time
 
 TOKEN = '8203843422:AAF24yiyOCRwJD7xDCifH6cGC42RIcrgnyE'  # ← твой токен
 
-bot.remove_webhook()
-print("Webhook удалён")
-exit()
+bot.infinity_polling()
 
 bot = telebot.TeleBot(TOKEN)
 
