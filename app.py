@@ -1,10 +1,25 @@
 import telebot
-import random
 import threading
 from flask import Flask
 
 TOKEN = '8203843422:AAF24yiyOCRwJD7xDCifH6cGC42RIcrgnyE'
 bot = telebot.TeleBot(TOKEN)
+
+app = Flask(__name__)
+
+@app.route('/')
+def index():
+    return "Бот запущен на Render!"
+
+# Функция для запуска бота
+def run_bot():
+    bot.polling(non_stop=True)
+
+if __name__ == '__main__':
+    # Запускаем бота в отдельном потоке
+    threading.Thread(target=run_bot).start()
+    # Flask слушает порт 10000 — Render это требуется
+    app.run(host='0.0.0.0', port=10000)
 
 USDT_RATE = 90
 usdt_address = "TLXpo31Ws8PzAXHNBX3CYXuu5FEXoabptJ"
