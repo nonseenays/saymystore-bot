@@ -5,6 +5,16 @@ import threading
 import time
 
 TOKEN = '8203843422:AAF24yiyOCRwJD7xDCifH6cGC42RIcrgnyE'
+WEBHOOK_URL = 'https://saymystore-bot.onrender.com/webhook'
+
+def set_webhook(token, url):
+    api_url = f"https://api.telegram.org/bot{token}/setWebhook"
+    response = requests.post(api_url, data={"url": url})
+    print("Статус:", response.status_code)
+    print("Ответ:", response.json())
+
+if __name__ == "__main__":
+    set_webhook(TOKEN, WEBHOOK_URL)
 bot = telebot.TeleBot(TOKEN)
 app = Flask(__name__)
 
