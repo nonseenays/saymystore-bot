@@ -1,25 +1,12 @@
 import telebot
-from flask import Flask, request
 import random
-import requests
-import threading
-import time
 
-TOKEN = '8203843422:AAF24yiyOCRwJD7xDCifH6cGC42RIcrgnyE'
-WEBHOOK_URL = 'https://saymystore-bot.onrender.com/webhook'
-
-def set_webhook(token, url):
-    api_url = f"https://api.telegram.org/bot{token}/setWebhook"
-    response = requests.post(api_url, data={"url": url})
-    print("Статус:", response.status_code)
-    print("Ответ:", response.json())
-
+TOKEN = '8203843422:AAF24yiyOCRwJD7xDCifH6cGC42RIcrgnyE'  # <<< ВСТАВЬ СЮДА СВОЙ ТОКЕН
 bot = telebot.TeleBot(TOKEN)
-app = Flask(__name__)
 
 USDT_RATE = 90
 usdt_address = "TLXpo31Ws8PzAXHNBX3CYXuu5FEXoabptJ"
-admin_chat_id = 123456789  # Впиши сюда Telegram ID менеджера
+admin_chat_id = 6779729167  # ← замени на свой Telegram ID
 
 user_orders = {}
 payment_status = {}
@@ -73,17 +60,6 @@ def chunk_list(lst, n):
 
 PRODUCTS_PER_PAGE = 7
 
-@app.route('/')
-def index():
-    return "Webhook работает!"
-
-@app.route('/webhook', methods=['POST'])
-def webhook():
-    json_string = request.get_data().decode('utf-8')
-    update = telebot.types.Update.de_json(json_string)
-    bot.process_new_updates([update])
-    return '', 200
-
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -113,7 +89,6 @@ def send_products_page(chat_id, page):
         return
 
     user_orders[chat_id]['page'] = page
-
     start_idx = page * PRODUCTS_PER_PAGE
     end_idx = start_idx + PRODUCTS_PER_PAGE
     products_page = products[start_idx:end_idx]
@@ -215,8 +190,8 @@ def handle_payment_screenshot(message):
         return
 
     payment_status[chat_id] = 'pending'
-    bot.send_message(chat_id, "Скриншот оплаты получен. Оплата будет проверяться в течение 10 минут. После проверки с вами свяжется менеджер для уточнения деталей доставки.")
+    bot.send_message(chat_id, "Скриншот оплаты получен. Оплата будет проверена в течение 10 минут. Ожидайте ответа менеджера.")
 
-if __name__ == '__main__':
-    set_webhook(TOKEN, WEBHOOK_URL)
-    app.run(host='0.0.0.0', port=10000)
+# --- Запуск бота ---
+print("Бот запущен через polling...")
+bot.polling(none_stop=True)
