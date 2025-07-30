@@ -1,7 +1,10 @@
 import telebot
 import random
+import requests
 
-TOKEN = '8203843422:AAF24yiyOCRwJD7xDCifH6cGC42RIcrgnyE'  # <<< ВСТАВЬ СЮДА СВОЙ ТОКЕН
+TOKEN = '8203843422:AAF24yiyOCRwJD7xDCifH6cGC42RIcrgnyE'  
+response = requests.get(f'https://api.telegram.org/bot{TOKEN}/deleteWebhook')
+print(response.json())# <<< ВСТАВЬ СЮДА СВОЙ ТОКЕН
 bot = telebot.TeleBot(TOKEN)
 
 USDT_RATE = 90
