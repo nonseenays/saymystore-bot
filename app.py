@@ -1,33 +1,14 @@
 import telebot
-import random  # Добавил импорт random, он используется в коде
-
-TOKEN = '8203843422:AAF24yiyOCRwJD7xDCifH6cGC42RIcrgnyE'  # ← твой токен
-
-bot = telebot.TeleBot(TOKEN)  # Создаём объект бота **до** вызовов методов
-
-# Пример хендлера
-@bot.message_handler(commands=['start'])
-def send_welcome(message):
-    bot.send_message(message.chat.id, "Привет! Я бот и я живой на Render!")
-
-# Запуск бота в отдельном потоке
-def start_bot():
-    bot.polling(non_stop=True)
+import random
+import threading
 from flask import Flask
-# Flask-приложение — только чтобы "держать" порт для Render
-app = Flask(__name__)
 
-@app.route('/')
-def home():
-    return 'Бот запущен!'
+TOKEN = '8203843422:AAF24yiyOCRwJD7xDCifH6cGC42RIcrgnyE'
+bot = telebot.TeleBot(TOKEN)
 
-if __name__ == '__main__':
-    # Запускаем бота параллельно 
-    threading.Thread(target=start_bot).start()
-    # Flask слушает порт 10000 (важно для Render)
-    app.run(host='0.0.0.0', port=10000)
-
-USDT_RATE = 90  # курс рублей к USDT
+USDT_RATE = 90
+usdt_address = "TLXpo31Ws8PzAXHNBX3CYXuu5FEXoabptJ"
+user_orders = {}
 
 prices_rub = {
     "MDMA 1Г": 3090,
@@ -179,7 +160,3 @@ def confirm_order(message):
 @bot.message_handler(func=lambda m: True)
 def default_handler(message):
     bot.send_message(message.chat.id, "Пожалуйста, используйте кнопки для навигации или /start для начала.")
-
-if __name__ == "__main__":
-    print("Бот запущен...")
-    bot.infinity_polling()
