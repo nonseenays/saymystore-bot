@@ -209,4 +209,7 @@ def handle_payment_screenshot(message):
         bot.send_message(chat_id, "Мы уже получили ваш скриншот оплаты и проверяем его. Пожалуйста, дождитесь результата.")
         return
 
-    payment_status[chat_id] =
+    payment_status[chat_id] = 'pending'
+    bot.send_message(chat_id, "Скриншот оплаты получен. Оплата будет проверяться в течение 10 минут. После проверки с вами свяжется менеджер для уточнения деталей доставки.")
+    
+    # Здесь можешь добавить логику проверки оплаты асинхронно, например через threading или asyncio.
