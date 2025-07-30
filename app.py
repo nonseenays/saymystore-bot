@@ -1,25 +1,10 @@
+from flask import Flask, request
 import telebot
-import threading
-from flask import Flask
+import random
 
 TOKEN = '8203843422:AAF24yiyOCRwJD7xDCifH6cGC42RIcrgnyE'
 bot = telebot.TeleBot(TOKEN)
-
 app = Flask(__name__)
-
-@app.route('/')
-def index():
-    return "Бот запущен на Render!"
-
-# Функция для запуска бота
-def run_bot():
-    bot.polling(non_stop=True)
-
-if __name__ == '__main__':
-    # Запускаем бота в отдельном потоке
-    threading.Thread(target=run_bot).start()
-    # Flask слушает порт 10000 — Render это требуется
-    app.run(host='0.0.0.0', port=10000)
 
 USDT_RATE = 90
 usdt_address = "TLXpo31Ws8PzAXHNBX3CYXuu5FEXoabptJ"
@@ -68,12 +53,22 @@ cities = [
     "Владивосток", "Махачкала", "Томск", "Оренбург", "Кемерово"
 ]
 
-usdt_address = "TLXpo31Ws8PzAXHNBX3CYXuu5FEXoabptJ"
-user_orders = {}
-
 def chunk_list(lst, n):
     for i in range(0, len(lst), n):
         yield lst[i:i + n]
+
+@app.route('/')
+def index():
+    return 'Webhook работает!'
+
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    json_str = request.get_data().decode('utf-8')
+    update = telebot.types.Update.de_json(json_str)
+    bot.process_new_updates([update])
+    return '', 200
+
+# === БОТ ЛОГИКА ===
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
