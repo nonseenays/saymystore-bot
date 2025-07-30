@@ -13,7 +13,7 @@ def send_welcome(message):
 # Запуск бота в отдельном потоке
 def start_bot():
     bot.polling(non_stop=True)
-
+from flask import Flask
 # Flask-приложение — только чтобы "держать" порт для Render
 app = Flask(__name__)
 
