@@ -1,6 +1,8 @@
-from flask import Flask, request
 import telebot
+from flask import Flask, request
 import random
+import threading
+import time
 
 TOKEN = '8203843422:AAF24yiyOCRwJD7xDCifH6cGC42RIcrgnyE'
 bot = telebot.TeleBot(TOKEN)
@@ -8,7 +10,10 @@ app = Flask(__name__)
 
 USDT_RATE = 90
 usdt_address = "TLXpo31Ws8PzAXHNBX3CYXuu5FEXoabptJ"
+admin_chat_id = 123456789  # Впиши сюда Telegram ID менеджера
+
 user_orders = {}
+payment_status = {}
 
 prices_rub = {
     "MDMA 1Г": 3090,
@@ -57,18 +62,21 @@ def chunk_list(lst, n):
     for i in range(0, len(lst), n):
         yield lst[i:i + n]
 
+# Кол-во товаров на странице
+PRODUCTS_PER_PAGE = 7
+
 @app.route('/')
 def index():
-    return 'Webhook работает!'
+    return "Webhook работает!"
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
-    json_str = request.get_data().decode('utf-8')
-    update = telebot.types.Update.de_json(json_str)
+    json_string = request.get_data().decode('utf-8')
+    update = telebot.types.Update.de_json(json_string)
     bot.process_new_updates([update])
     return '', 200
 
-# === БОТ ЛОГИКА ===
+# --- КЛЮЧЕВЫЕ КОМАНДЫ И ОБРАБОТЧИКИ ---
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
@@ -85,20 +93,59 @@ def choose_city(message):
 
 @bot.message_handler(func=lambda m: m.text in cities)
 def choose_product(message):
-    markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=4)
-    for product_chunk in chunk_list(list(prices_rub.keys()), 4):
-        markup.add(*product_chunk)
-    bot.send_message(message.chat.id, "Выберите товар:", reply_markup=markup)
+    chat_id = message.chat.id
+    user_orders.setdefault(chat_id, {})
+    user_orders[chat_id]['city'] = message.text
+    user_orders[chat_id]['page'] = 0  # стартовая страница товаров
+    send_products_page(chat_id, 0)
+
+def send_products_page(chat_id, page):
+    products = list(prices_rub.keys())
+    max_page = (len(products) - 1) // PRODUCTS_PER_PAGE
+
+    if page < 0 or page > max_page:
+        return
+
+    user_orders[chat_id]['page'] = page
+
+    start_idx = page * PRODUCTS_PER_PAGE
+    end_idx = start_idx + PRODUCTS_PER_PAGE
+    products_page = products[start_idx:end_idx]
+
+    markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    markup.add(*products_page)
+
+    nav_buttons = []
+    if page > 0:
+        nav_buttons.append("⬅️ Предыдущая страница")
+    if page < max_page:
+        nav_buttons.append("➡️ Следующая страница")
+    if nav_buttons:
+        markup.add(*nav_buttons)
+
+    bot.send_message(chat_id, f"Выберите товар (страница {page + 1} из {max_page + 1}):", reply_markup=markup)
+
+@bot.message_handler(func=lambda m: m.text in ["⬅️ Предыдущая страница", "➡️ Следующая страница"])
+def navigate_products(message):
+    chat_id = message.chat.id
+    page = user_orders.get(chat_id, {}).get('page', 0)
+    if message.text == "⬅️ Предыдущая страница":
+        page -= 1
+    elif message.text == "➡️ Следующая страница":
+        page += 1
+    send_products_page(chat_id, page)
 
 @bot.message_handler(func=lambda m: m.text in prices_rub)
 def product_choice(message):
     chat_id = message.chat.id
-    user_orders[chat_id] = {
-        'product': message.text,
-        'city': None,
-        'delivery_method': None,
-        'order_number': random.randint(1000, 9999)
-    }
+    if chat_id not in user_orders:
+        bot.send_message(chat_id, "Пожалуйста, сначала выберите город.")
+        return
+
+    user_orders[chat_id]['product'] = message.text
+    user_orders[chat_id]['delivery_method'] = None
+    user_orders[chat_id]['order_number'] = random.randint(1000, 9999)
+
     markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
     markup.add("Магнит", "Прикоп", "Тайник")
     bot.send_message(chat_id, f"Вы выбрали товар: {message.text}\nВыберите способ получения:", reply_markup=markup)
@@ -124,49 +171,42 @@ def choose_delivery(message):
         f"Оплата в USDT (TRC20): {price_usdt} USDT\n\n"
         f"Адрес для оплаты:\n{usdt_address}\n\n"
         f"Номер заказа: {order_number}\n\n"
-        f"Нажмите кнопку ниже, чтобы скопировать адрес оплаты."
+        f"Нажмите кнопку ниже после оплаты."
     )
 
     markup = telebot.types.InlineKeyboardMarkup()
     markup.add(
         telebot.types.InlineKeyboardButton(
-            text="Скопировать адрес оплаты",
-            callback_data=f"copy_payment_{order_number}_{price_usdt}"
+            text="Я оплатил товар",
+            callback_data=f"paid_{order_number}"
         )
     )
 
     bot.send_message(chat_id, pay_text, reply_markup=markup)
 
-@bot.callback_query_handler(func=lambda call: call.data.startswith("copy_payment_"))
-def callback_copy_payment_info(call):
-    data = call.data.split("_")
-    order_number = data[2]
-    price_usdt = data[3]
+@bot.callback_query_handler(func=lambda call: call.data.startswith("paid_"))
+def callback_paid(call):
     chat_id = call.message.chat.id
+    order_number = call.data.split("_")[1]
 
-    text = (
-        f"Адрес для оплаты:\n{usdt_address}\n"
-        f"Сумма к оплате: {price_usdt} USDT\n"
-        f"Номер заказа: {order_number}"
-    )
-    bot.send_message(chat_id, text)
-    bot.answer_callback_query(call.id, "Адрес и номер заказа отправлены в чат.\nПосле оплаты подтвердите заказ командой /confirm")
-
-@bot.message_handler(commands=['confirm'])
-def confirm_order(message):
-    chat_id = message.chat.id
-    order = user_orders.get(chat_id)
-    if not order or 'product' not in order or 'delivery_method' not in order:
-        bot.send_message(chat_id, "У вас нет активного заказа.")
+    # Проверяем, что заказ есть у пользователя
+    if chat_id not in user_orders or user_orders[chat_id].get('order_number') != int(order_number):
+        bot.answer_callback_query(call.id, "Заказ не найден или уже обработан.")
         return
 
     bot.send_message(chat_id,
-                     f"Спасибо! Ваш заказ №{order['order_number']} принят и будет обработан.\n"
-                     f"Товар: {order['product']}\n"
-                     f"Способ получения: {order['delivery_method']}\n"
-                     f"Мы свяжемся с вами в ближайшее время.")
-    user_orders.pop(chat_id)
+                     "Пожалуйста, пришлите скриншот оплаты, чтобы мы могли проверить и подтвердить ваш заказ.")
+    bot.answer_callback_query(call.id)
 
-@bot.message_handler(func=lambda m: True)
-def default_handler(message):
-    bot.send_message(message.chat.id, "Пожалуйста, используйте кнопки для навигации или /start для начала.")
+@bot.message_handler(content_types=['photo'])
+def handle_payment_screenshot(message):
+    chat_id = message.chat.id
+    if chat_id not in user_orders or 'product' not in user_orders[chat_id]:
+        bot.send_message(chat_id, "У вас нет активного заказа.")
+        return
+
+    if payment_status.get(chat_id) == 'pending':
+        bot.send_message(chat_id, "Мы уже получили ваш скриншот оплаты и проверяем его. Пожалуйста, дождитесь результата.")
+        return
+
+    payment_status[chat_id] =
