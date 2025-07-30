@@ -1,6 +1,7 @@
 import telebot
 from flask import Flask, request
 import random
+import requests
 import threading
 import time
 
@@ -13,8 +14,6 @@ def set_webhook(token, url):
     print("Статус:", response.status_code)
     print("Ответ:", response.json())
 
-if __name__ == "__main__":
-    set_webhook(TOKEN, WEBHOOK_URL)
 bot = telebot.TeleBot(TOKEN)
 app = Flask(__name__)
 
@@ -72,7 +71,6 @@ def chunk_list(lst, n):
     for i in range(0, len(lst), n):
         yield lst[i:i + n]
 
-# Кол-во товаров на странице
 PRODUCTS_PER_PAGE = 7
 
 @app.route('/')
@@ -85,8 +83,6 @@ def webhook():
     update = telebot.types.Update.de_json(json_string)
     bot.process_new_updates([update])
     return '', 200
-
-# --- КЛЮЧЕВЫЕ КОМАНДЫ И ОБРАБОТЧИКИ ---
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
@@ -106,7 +102,7 @@ def choose_product(message):
     chat_id = message.chat.id
     user_orders.setdefault(chat_id, {})
     user_orders[chat_id]['city'] = message.text
-    user_orders[chat_id]['page'] = 0  # стартовая страница товаров
+    user_orders[chat_id]['page'] = 0
     send_products_page(chat_id, 0)
 
 def send_products_page(chat_id, page):
@@ -199,7 +195,6 @@ def callback_paid(call):
     chat_id = call.message.chat.id
     order_number = call.data.split("_")[1]
 
-    # Проверяем, что заказ есть у пользователя
     if chat_id not in user_orders or user_orders[chat_id].get('order_number') != int(order_number):
         bot.answer_callback_query(call.id, "Заказ не найден или уже обработан.")
         return
@@ -221,5 +216,7 @@ def handle_payment_screenshot(message):
 
     payment_status[chat_id] = 'pending'
     bot.send_message(chat_id, "Скриншот оплаты получен. Оплата будет проверяться в течение 10 минут. После проверки с вами свяжется менеджер для уточнения деталей доставки.")
-    
-    # Здесь можешь добавить логику проверки оплаты асинхронно, например через threading или asyncio.
+
+if __name__ == '__main__':
+    set_webhook(TOKEN, WEBHOOK_URL)
+    app.run(host='0.0.0.0', port=10000)
