@@ -5,6 +5,28 @@ TOKEN = '8203843422:AAF24yiyOCRwJD7xDCifH6cGC42RIcrgnyE'  # ← твой ток�
 
 bot = telebot.TeleBot(TOKEN)  # Создаём объект бота **до** вызовов методов
 
+# Пример хендлера
+@bot.message_handler(commands=['start'])
+def send_welcome(message):
+    bot.send_message(message.chat.id, "Привет! Я бот и я живой на Render!")
+
+# Запуск бота в отдельном потоке
+def start_bot():
+    bot.polling(non_stop=True)
+
+# Flask-приложение — только чтобы "держать" порт для Render
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return 'Бот запущен!'
+
+if __name__ == '__main__':
+    # Запускаем бота параллельно 
+    threading.Thread(target=start_bot).start()
+    # Flask слушает порт 10000 (важно для Render)
+    app.run(host='0.0.0.0', port=10000)
+
 USDT_RATE = 90  # курс рублей к USDT
 
 prices_rub = {
